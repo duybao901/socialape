@@ -24,7 +24,6 @@ firebase.initializeApp(firebaseConfig);
 // Lấy tất cả dữ liệu từ database database
 app.get('/screams', (req, res) => {
    admin.firestore().collection('screams').get()
-      .orderBy('createdAt')
       .then(data => {
          let screams = [];
          data.forEach(doc => {
@@ -44,14 +43,45 @@ app.get('/screams', (req, res) => {
       })
 })
 
+// Auth middleware
+const FBauth = (req, res, next) => {
+   let idToken;
+   // startsWith() method xác định liệu một chuỗi bắt đầu với các chữ cái của chuỗi khác hay không, trả về giá trị true hoặc false tương ứng.
+   if (req.headers.authorization && req.headers.authorization.startsWith('Bearer ')) {
+      idToken = req.headers.authorization.split('Bearer ')[1];
+   } else {
+      // 403 = Forbidden
+      console.error('No token found')
+      return res.status(403).json({ error: `Unauthorized` })
+   }
+
+   admin.auth().verifyIdToken(idToken)
+      .then(decodedToken => {
+         req.user = decodedToken;
+         console.log(decodedToken)
+         return admin.firestore().collection('users')
+            .where('userId', '==', req.user.uid)
+            .limit(1)
+            .get()
+      })
+      .then(data => {
+         req.user.handle = data.docs[0].data().handle;
+         return next();
+      })
+      .catch(err => {
+         console.log(`Error while erifying token`, err);
+         return res.status(400).json(err);
+      })
+}
+
 // Tạo dữ liệu gửi lên database
-app.post('/screams', (req, res) => {
+app.post('/screams', FBauth, (req, res) => {
    if (req.method !== "POST") {
       return res.status(400).json({ err: `Method not alow` })
    }
    const newScreams = {
       body: req.body.body,
-      userHandle: req.body.userHandle,
+      userHandle: req.user.handle,
       createdAt: new Date().toISOString(),
    };
 
@@ -129,7 +159,7 @@ app.post('/signup', (req, res) => {
          token = tokenId;
          const userCredential = {
             email: newUser.email,
-            passowrd: newUser.password,
+            handle: newUser.handle,
             createdAt: new Date().toISOString(),
             userId: userID
          }
@@ -172,8 +202,8 @@ app.post('/login', (req, res) => {
       })
       .catch(err => {
          if (err.code = "auth/wrong-password") {
-            return res.status(500).json({general: "Wrong credential, please try again"})
-         } else {            
+            return res.status(500).json({ general: "Wrong credential, please try again" })
+         } else {
             return res.status(500).json({ err: err.code })
          }
       })
