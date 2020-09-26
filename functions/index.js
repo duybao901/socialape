@@ -65,8 +65,8 @@ app.post('/screams', (req, res) => {
       })
 })
 
-const idEmail = (email) => {
-   const regex = /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/
+const isEmail = (email) => {
+   const regex = '/^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/'
    if (email.match(regex)) {
       return true;
    } else {
@@ -95,7 +95,7 @@ app.post('/signup', (req, res) => {
    if (isEmpty(newUser.email)) {
       errors.email = 'Email must not be empty';
    } else {
-      if (isEmpty(newUser.email)) {
+      if (isEmail(newUser.email)) {
          errors.email = 'Email must be a email address';
       }
    }
@@ -146,6 +146,38 @@ app.post('/signup', (req, res) => {
             return res.status(500).json({ err: err.code })
          }
       })
+})
+
+// Login route
+app.post('/login', (req, res) => {
+   const user = {
+      email: req.body.email,
+      password: req.body.password
+   }
+
+   const errors = {};
+   if (isEmpty(user.email)) errors.email = 'Email not empty';
+   if (isEmpty(user.password)) errors.password = 'Password not empty';
+   if (Object.keys(errors).length > 0) {
+      // 400 = bad request
+      res.status(400).json(errors);
+   }
+
+   firebase.auth().signInWithEmailAndPassword(user.email, user.password)
+      .then(data => {
+         return data.user.getIdToken();
+      })
+      .then(token => {
+         return res.json({ token })
+      })
+      .catch(err => {
+         if (err.code = "auth/wrong-password") {
+            return res.status(500).json({general: "Wrong credential, please try again"})
+         } else {            
+            return res.status(500).json({ err: err.code })
+         }
+      })
+
 })
 
 //*  https://baseurl.com/api/
