@@ -17,6 +17,8 @@ module.exports.signUp = (req, res) => {
         return res.status(400).json(errors)
     }
 
+    const noImage = 'no-image.png';
+
     // TODO: vadidate Data
     // Doc(/users/${newUser.handle}) -> kiểm tra doc.exists -> chưa tồn tại -> 
     // Tạo user và lưu vào aithentication -> Trả về Promise  (data)  ->  // Trả về Promise (token) -> Lấy token là lưu vào collection: users của cloud store
@@ -41,6 +43,7 @@ module.exports.signUp = (req, res) => {
                 email: newUser.email,
                 handle: newUser.handle,
                 createdAt: new Date().toISOString(),
+                imageUrl: `https://firebasestorage.googleapis.com/v0/b/${firebaseConfig.storageBucket}/o/${noImage}?alt=media`,
                 userId: userID
             }
             admin.firestore().doc(`/users/${newUser.handle}`).set(userCredential) // Trả về 1 Promise   
@@ -83,5 +86,53 @@ module.exports.login = (req, res) => {
                 return res.status(500).json({ err: err.code })
             }
         })
+}
 
+//* Để mở được ảnh thì chỉnh rule của storage thành "allow read;" */
+module.exports.uploadImage = (req, res) => {
+    const Busboy = require('busboy')
+    const path = require('path');
+    const os = require('os');
+    const fs = require('fs');
+
+    let imageFileName;
+    let imageToBeUploaded = {};
+    const busboy = new Busboy({ headers: req.headers })
+    busboy.on('file', (fieldName, file, filename, encoding, minetype) => {
+        console.log("fieldName", fieldName);
+        console.log("filename", filename);
+        console.log("minetype", minetype);
+        // imgae.png -> .png
+        const imageExtention = filename.split('.')[filename.split('.').length - 1];
+        // 1231389687.png
+        imageFileName = `${Math.round(Math.random() * 100000000000000)}.${imageExtention}`;
+        const filepath = path.join(os.tmpdir(), imageFileName);
+        imageToBeUploaded = { filepath, minetype };
+        file.pipe(fs.createWriteStream(filepath));
+    });
+    busboy.on('finish', () => {
+        // Úp ảnh lên storage
+        admin.storage().bucket(firebaseConfig.storageBucket).upload(imageToBeUploaded.filepath, { // return promise
+            resumable: false,
+            metadata: {
+                metadata: {
+                    contentType: imageToBeUploaded.minetype
+                }
+            }
+        })
+            .then(() => {
+                //*  ?alt=media thêm dòng này thì mở ảnh nó sẽ ko tự download vẻ mà chỉ show ra 
+                //*  Thay đổi ảnh hiện tại
+                const imageUrl = `https://firebasestorage.googleapis.com/v0/b/${firebaseConfig.storageBucket}/o/${imageFileName}?alt=media`
+                return admin.firestore().doc(`/users/${req.user.handle}`).update({ imageUrl })
+            })
+            .then(() => {
+                res.json({ message: 'upload image successfully' });
+            })
+            .catch(err => {
+                console.log(err);
+                res.json(err);
+            })
+    })
+    busboy.end(req.rawBody) // Nếu không có dòng này thì trình duyệt sẽ request mãi mãi
 }
