@@ -2,7 +2,7 @@ const app = require('express')();
 const functions = require('firebase-functions');
 
 const { getAllScreams, postOneScream } = require('./handlers/screams')
-const { signUp, login, uploadImage } = require('./handlers/users')
+const { signUp, login, uploadImage, addUserDetails, getAuthenticatedUser } = require('./handlers/users')
 const FBauth = require('./util/FBauth')
 
 // * Scream Route
@@ -11,13 +11,15 @@ app.post('/screams', FBauth, postOneScream)
 // Lấy tất cả dữ liệu từ database database
 app.get('/screams', getAllScreams)
 
+app.post('/user/image', FBauth, uploadImage)
+app.post('/user', FBauth, addUserDetails)
+app.get('/user', FBauth, getAuthenticatedUser)
 
 // * User Route
 // Signup Route
 app.post('/signup', signUp)
 // Login route
 app.post('/login', login)
-app.post('/user/image', FBauth,uploadImage)
 //*  https://baseurl.com/api/
 // functions.https.onRequest sẽ bắt được sự kiện khi có request đến
 // Tạo ra functions kết hợp vs express để tạo ra url như thế này https://baseurl.com/api/screams

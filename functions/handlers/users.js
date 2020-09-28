@@ -1,9 +1,11 @@
-const { admin } = require('../util/admin');
+const { admin, db } = require('../util/admin');
 const firebase = require('firebase');
 const firebaseConfig = require('../util/config')
 firebase.initializeApp(firebaseConfig);
-const { validateSignupData, validateLoginData } = require('../util/validator')
+const { validateSignupData, validateLoginData, reducerUserDetails } = require('../util/validator');
+const { user } = require('firebase-functions/lib/providers/auth');
 
+// user Sign up
 module.exports.signUp = (req, res) => {
     const newUser = {
         email: req.body.email,
@@ -61,6 +63,7 @@ module.exports.signUp = (req, res) => {
         })
 }
 
+// user Log in
 module.exports.login = (req, res) => {
     const user = {
         email: req.body.email,
@@ -87,7 +90,44 @@ module.exports.login = (req, res) => {
             }
         })
 }
+// Add user details
+module.exports.addUserDetails = (req, res) => {
+    const userDetails = reducerUserDetails(req.body);
+    db.doc(`/users/${req.user.handle}`).update(userDetails)
+        .then(() => {
+            return res.json({ message: 'Update user successfully' });
+        })
+        .catch((err) => {
+            console.error(err)
+            return res.status(500).json({ error: err.code })
+        })
+}
 
+// Get a authenticated user
+module.exports.getAuthenticatedUser = (req, res) => {
+    const userData = {};
+    db.doc(`/users/${req.user.handle}`).get()
+        .then(doc => {
+            if (doc.exists) {
+                console.log(doc);
+                userData.credebtial = doc.data();
+                return db.collection('likes').where('userHandle', '==', req.user.handle).get();
+            }
+        })
+        .then(data => {
+            userData.likes = [];
+            data.forEach(doc => {
+                userData.likes.push(doc.data(0))
+            });
+            return res.json(userData);
+        })
+        .catch(err => {
+            console.error(err);
+            res.status(500).json({ err: err.code })
+        })
+}
+
+// Upload a user image
 //* Để mở được ảnh thì chỉnh rule của storage thành "allow read;" */
 module.exports.uploadImage = (req, res) => {
     const Busboy = require('busboy')

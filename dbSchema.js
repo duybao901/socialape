@@ -7,5 +7,36 @@ let db = {
             likeCount: 5,
             conmentCount: 2
         }
-    ] 
+    ],
+    users: [
+        {
+            userHandle: "user",
+            createdAt: "2020-09-27T07:11:14.444Z",
+            email: "jojo@gmail.com",
+            handle: "jojo",
+            userId: "OFbbMEGtEDO23mxGbtIukC6yRbx2",
+            bio: "hello,my name is user , nice to meet you",
+            website: "https://user.com",
+            location: "London, UK"
+        }
+    ]
+}
+let userDetails = {
+    // Redux data
+    credentials: {
+        userId: "OFbbMEGtEDO23mxGbtIukC6yRbx2",
+        userHandle: "user",
+        createdAt: "2020-09-27T07:11:14.444Z",
+        email: "jojo@gmail.com",
+        handle: "jojo",
+        bio: "hello,my name is user , nice to meet you",
+        website: "https://user.com",
+        location: "London, UK"
+    },
+    like: [
+        {
+            userHandle: "user",
+            screamId: ""
+        }
+    ]
 }
