@@ -1,6 +1,6 @@
 const { db } = require('../util/admin')
 
-// fetch all scream
+// TODO: fetch all scream
 module.exports.getAllScreams = (req, res) => {
     db.collection('screams').get()
         .then(data => {
@@ -22,7 +22,7 @@ module.exports.getAllScreams = (req, res) => {
         })
 }
 
-// Post a scream
+// TODO: Post a scream
 module.exports.postOneScream = (req, res) => {
     if (req.method !== "POST") {
         return res.status(400).json({ err: `Method not alow` })
@@ -48,7 +48,7 @@ module.exports.postOneScream = (req, res) => {
         })
 }
 
-// fetch a scream 
+// TODO: fetch a scream 
 module.exports.getScream = (req, res) => {
     let screamData = {};
 
@@ -70,7 +70,15 @@ module.exports.getScream = (req, res) => {
             data.forEach(doc => {
                 screamData.comments.push(doc.data());
             })
-            res.json(screamData);
+            return db.collection('likes')
+                .where("screamId", "==", req.params.screamId).get()
+        })
+        .then((data) => {
+            screamData.likes = [];
+            data.forEach(doc => {
+                screamData.likes.push(doc.data());
+            })
+            res.json(screamData)
         })
         .catch((err) => {
             console.error(err);
@@ -78,7 +86,7 @@ module.exports.getScream = (req, res) => {
         })
 }
 
-// Post a comments
+// TODO: Post a comments
 module.exports.commentOnScream = (req, res) => {
     // Validate body
     if (req.body.body.trim() === '') return res.status(404).json({ message: 'Body not empty' });
@@ -110,7 +118,29 @@ module.exports.commentOnScream = (req, res) => {
         })
 }
 
-// Like a scream
+// TODO: Delete a scream
+module.exports.deleteScream = (req, res) => {
+    const screamDocument = db.doc(`/screams/${req.params.screamId}`).get();
+
+    screamDocument.then(doc => {
+        if (!doc.exists) {
+            return res.status(403).json({ Error: 'Scream not found' });
+        }
+        if (doc.data().userHandle !== req.user.handle) {
+            return res.status(403).json({ Error: 'Can not delete scream' });
+        }
+        return db.doc(`/screams/${req.params.screamId}`).delete();
+    })
+        .then(() => {
+            res.json({message:'delete scream successfully'})
+        })
+        .catch(error => {
+            console.error(error);
+            res.status(500).json({err: error.code})
+        })
+}
+
+// TODO: Like a scream
 module.exports.likeScream = (req, res) => {
 
     const likeDocument = db.collection('likes')
@@ -132,7 +162,7 @@ module.exports.likeScream = (req, res) => {
             } else {
                 res.status(500).json({ err: 'scream not found' })
             }
-        })        
+        })
         .then((data) => {
             console.log('Like Data: ', data);
             // Nếu có data thì đã like rồi
@@ -146,7 +176,7 @@ module.exports.likeScream = (req, res) => {
                         return screamDocument.update({ likeCount: screamData.likeCount })
                     })
                     .then(() => {
-                        res.json({message: `${req.user.handle} Like a scream ${req.params.screamId} succesfully`})
+                        res.json({ message: `${req.user.handle} Like a scream ${req.params.screamId} succesfully` })
                     })
                     .catch(err => {
                         console.log(err);
@@ -157,13 +187,13 @@ module.exports.likeScream = (req, res) => {
             }
         })
         .catch(err => {
-            console.log('err:',err);
+            console.log('err:', err);
             res.status(500).json({ error: err.code });
         })
 
 }
 
-// Unlike a scream
+// TODO: Unlike a scream
 module.exports.unlikeScream = (req, res) => {
     const likeDocument = db.collection('likes')
         .where('userHandle', '==', req.user.handle)
@@ -196,7 +226,7 @@ module.exports.unlikeScream = (req, res) => {
                         return screamDocument.update({ likeCount: screamData.likeCount })
                     })
                     .then(() => {
-                        return res.json({ message: 'Unlike successfully', screamData }, )
+                        return res.json({ message: 'Unlike successfully', screamData },)
                     })
                     .catch((err) => {
                         return res.status(500).json({ err: err.code, message: 'Unlike fails' })

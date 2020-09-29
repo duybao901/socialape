@@ -10,10 +10,10 @@ const FBauth = (req, res, next) => {
     return res.status(403).json({ error: `Unauthorized` })
   }
 
+  // TODO: Verify The Token 
   admin.auth().verifyIdToken(idToken)
     .then(decodedToken => {
       req.user = decodedToken;
-      console.log(decodedToken)
       return admin.firestore().collection('users')
         .where('userId', '==', req.user.uid)
         .limit(1)
