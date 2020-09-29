@@ -1,7 +1,7 @@
 const app = require('express')();
 const functions = require('firebase-functions');
 
-const { getAllScreams, postOneScream, getScream, commentOnScream } = require('./handlers/screams')
+const { getAllScreams, postOneScream, getScream, commentOnScream, likeScream, unlikeScream} = require('./handlers/screams')
 const { signUp, login, uploadImage, addUserDetails, getAuthenticatedUser } = require('./handlers/users')
 const FBauth = require('./util/FBauth')
 
@@ -11,6 +11,8 @@ app.post('/screams', FBauth, postOneScream)
 // Lấy tất cả dữ liệu từ database database
 app.get('/screams', getAllScreams)
 app.get('/screams/:screamId', getScream)
+app.get('/screams/:screamId/like', FBauth, likeScream)
+app.get('/screams/:screamId/unlike', FBauth, unlikeScream)
 app.post('/screams/:screamId/comment', FBauth, commentOnScream)
 
 
